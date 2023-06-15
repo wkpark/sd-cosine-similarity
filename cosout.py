@@ -78,7 +78,13 @@ def main():
         
     del model_a
      
+    hdr = "| "
+    for n in range(3, 12):
+        hdr += f" OUT{n:02d}   | "
+
     for file2 in files:
+        print(hdr)
+        val = "| "
         file2 = Path(file2)
         model_b = load_model(file2)
         
@@ -89,8 +95,12 @@ def main():
             
             sim = torch.mean(torch.cosine_similarity(attn_a, attn_b))
             sims.append(sim)
-            
+            val += f"{sim * 1e2:.4f}% | "
+
+        print(val)
+        print("")
         print(f"{file2} [{model_hash(file2)}] - {torch.mean(torch.stack(sims)) * 1e2:.4f}%")
+        print("")
         
 if __name__ == "__main__":
     main()
