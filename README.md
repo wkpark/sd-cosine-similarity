@@ -10,3 +10,6 @@ forked from https://huggingface.co/JosephusCheung/ASimilarityCalculatior
 
 ## Changelog
  * 2023/06/16 - support some `input_blocks` and `middle_block`
+
+## See also
+ * https://github.com/hako-mikan/sd-webui-supermerger/blob/main/elemental_en.md
