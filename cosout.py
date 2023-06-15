@@ -1,3 +1,8 @@
+#
+# Original authors Nyanko Lepsoni and RcINS. Danke schön
+#
+# MIT License
+#
 from safetensors.torch import load_file
 import sys
 import torch
@@ -64,7 +69,7 @@ def main():
 
     map_attn_a = {}
     map_rand_input = {}
-    for n in range(3, 11):
+    for n in range(3, 12):
         hidden_dim, embed_dim = model_a[f"model.diffusion_model.output_blocks.{n}.1.transformer_blocks.0.attn1.to_q.weight"].shape
         rand_input = torch.randn([embed_dim, hidden_dim])
 
@@ -78,14 +83,14 @@ def main():
         model_b = load_model(file2)
         
         sims = []
-        for n in range(3, 11):
+        for n in range(3, 12):
             attn_a = map_attn_a[n]
             attn_b = eval(model_b, n, map_rand_input[n])
             
             sim = torch.mean(torch.cosine_similarity(attn_a, attn_b))
             sims.append(sim)
             
-        print(f"{file2} [{model_hash(file2)}] - {torch.mean(torch.stack(sims)) * 1e2:.2f}%")
+        print(f"{file2} [{model_hash(file2)}] - {torch.mean(torch.stack(sims)) * 1e2:.4f}%")
         
 if __name__ == "__main__":
     main()
