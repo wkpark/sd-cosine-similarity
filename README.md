@@ -2,10 +2,8 @@
 license: mit
 ---
 
-# ASimilarityCalculatior
+# SD cosine similarity calculator
 
-Made by *Nyanko Lepsoni* and *RcINS*. Danke schön!
+Original author *Nyanko Lepsoni* and *RcINS*. Danke schön!
 
-Example:
-
-![](https://huggingface.co/JosephusCheung/ASimilarityCalculatior/resolve/main/example.JPG)
+forked from https://huggingface.co/JosephusCheung/ASimilarityCalculatior
