@@ -3,6 +3,8 @@
 #
 # MIT License
 #
+# support input_blocks similarity.
+#
 from safetensors.torch import load_file
 import sys
 import torch
@@ -45,9 +47,18 @@ def load_model(path):
         return ckpt["state_dict"] if "state_dict" in ckpt else ckpt
         
 def eval(model, n, input):
-    qk = f"model.diffusion_model.output_blocks.{n}.1.transformer_blocks.0.attn1.to_q.weight"
-    uk = f"model.diffusion_model.output_blocks.{n}.1.transformer_blocks.0.attn1.to_k.weight"
-    vk = f"model.diffusion_model.output_blocks.{n}.1.transformer_blocks.0.attn1.to_v.weight"
+    qk = f"model.diffusion_model.input_blocks.{n}.1.transformer_blocks.0.attn1.to_q.weight"
+    uk = f"model.diffusion_model.input_blocks.{n}.1.transformer_blocks.0.attn1.to_k.weight"
+    vk = f"model.diffusion_model.input_blocks.{n}.1.transformer_blocks.0.attn1.to_v.weight"
+    atoq, atok, atov = model[qk], model[uk], model[vk]
+
+    attn = cal_cross_attn(atoq, atok, atov, input)
+    return attn
+
+def eval_middle(model, input):
+    qk = f"model.diffusion_model.middle_block.1.transformer_blocks.0.attn1.to_q.weight"
+    uk = f"model.diffusion_model.middle_block.1.transformer_blocks.0.attn1.to_k.weight"
+    vk = f"model.diffusion_model.middle_block.1.transformer_blocks.0.attn1.to_v.weight"
     atoq, atok, atov = model[qk], model[uk], model[vk]
 
     attn = cal_cross_attn(atoq, atok, atov, input)
@@ -69,18 +80,26 @@ def main():
 
     map_attn_a = {}
     map_rand_input = {}
-    for n in range(3, 12):
-        hidden_dim, embed_dim = model_a[f"model.diffusion_model.output_blocks.{n}.1.transformer_blocks.0.attn1.to_q.weight"].shape
+    for n in 1,2,4,5,7,8:
+        hidden_dim, embed_dim = model_a[f"model.diffusion_model.input_blocks.{n}.1.transformer_blocks.0.attn1.to_q.weight"].shape
         rand_input = torch.randn([embed_dim, hidden_dim])
 
         map_attn_a[n] = eval(model_a, n, rand_input)
         map_rand_input[n] = rand_input
-        
+
+    # for middle block
+    hidden_dim, embed_dim = model_a[f"model.diffusion_model.middle_block.1.transformer_blocks.0.attn1.to_q.weight"].shape
+    rand_input = torch.randn([embed_dim, hidden_dim])
+
+    map_attn_a[0] = eval_middle(model_a, rand_input)
+    map_rand_input[0] = rand_input
+
     del model_a
      
     hdr = "| "
-    for n in range(3, 12):
-        hdr += f" OUT{n:02d}   | "
+    for n in 1,2,4,5,7,8:
+        hdr += f"  IN{n:02d}   | "
+    hdr += "  MI00   |"
 
     for file2 in files:
         print(hdr)
@@ -89,13 +108,20 @@ def main():
         model_b = load_model(file2)
         
         sims = []
-        for n in range(3, 12):
+        for n in 1,2,4,5,7,8:
             attn_a = map_attn_a[n]
             attn_b = eval(model_b, n, map_rand_input[n])
             
             sim = torch.mean(torch.cosine_similarity(attn_a, attn_b))
-            sims.append(sim)
             val += f"{sim * 1e2:.4f}% | "
+            sims.append(sim)
+
+        # for middle block
+        attn_a = map_attn_a[0]
+        attn_b = eval_middle(model_b, map_rand_input[0])
+        sim = torch.mean(torch.cosine_similarity(attn_a, attn_b))
+        val += f"{sim * 1e2:.4f}% |"
+        sims.append(sim)
 
         print(val)
         print("")
